@@ -8,3 +8,4 @@ pandas
 scipy
 matplotlib
 requests 
+python-dotenv  
