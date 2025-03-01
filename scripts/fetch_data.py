@@ -1,12 +1,17 @@
-import os  
 import requests  
 import pandas as pd  
 
 def fetch_data():  
-    url = "https://api.soccersapi.com/v2.2/leagues/?user=lundiodney&token=623654d91c81ceed9379be5968f089d8&t=list"  
+    # Construire l'URL pour récupérer les ligues  
+    url = f"{api_url}/leagues"  # Endpoint pour récupérer les ligues  
+    
+    # Définir les en-têtes pour la requête  
+    headers = {  
+        'x-apisports-key': api_key  # Utiliser la clé API dans les en-têtes  
+    }  
     
     # Effectuer la requête GET  
-    response = requests.get(url)  
+    response = requests.get(url, headers=headers)  
     
     # Vérifier si la requête a réussi  
     if response.status_code == 200:  
@@ -14,7 +19,7 @@ def fetch_data():
         print("Données de l'API :", data)  # Afficher les données de l'API  
         
         # Extraire les informations nécessaires  
-        leagues = data.get('leagues', [])  
+        leagues = data.get('response', [])  # Les données des ligues sont dans 'response'  
         print("Leagues extraites :", leagues)  # Afficher les ligues extraites  
         
         # Créer un DataFrame à partir des données  
@@ -30,4 +35,4 @@ def fetch_data():
         print(f"Erreur lors de la récupération des données : {response.status_code}")  
 
 # Appeler la fonction pour récupérer les données  
-fetch_data()  
+fetch_data()  # N'oubliez pas les parenthèses pour appeler la fonction  
