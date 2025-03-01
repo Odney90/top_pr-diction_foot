@@ -1,0 +1,9 @@
+Flask
+pandas
+scikit-learn
+xgboost
+numpy
+streamlit
+pandas
+scipy
+matplolib
