@@ -1,56 +1,58 @@
-from flask import Flask, request, jsonify  
-import pickle  
-import pandas as pd  
-import matplotlib.pyplot as plt  
-import io  
-import base64  
-from process import process_data  # Importer la fonction de traitement  
+import streamlit as st
+import pandas as pd
+import joblib
+import os
 
-app = Flask(__name__)  
+# Charger la liste des équipes (depuis un fichier ou une liste statique)
+EQUIPES = ["PSG", "Marseille", "Lyon", "Monaco", "Lille", "Rennes", "Nice", "Bordeaux"]  # Exemple
 
-# Charger les modèles  
-def load_model(filename):  
-    with open(filename, 'rb') as file:  
-        model = pickle.load(file)  
-    return model  
+# Charger les modèles
+MODEL_PATH = "../models"
+CLASSIFIER_MODEL = os.path.join(MODEL_PATH, "RandomForest_classifier.pkl")
+REGRESSOR_TEAM1_MODEL = os.path.join(MODEL_PATH, "RandomForest_regressor_team1.pkl")
+REGRESSOR_TEAM2_MODEL = os.path.join(MODEL_PATH, "RandomForest_regressor_team2.pkl")
 
-logistic_model = load_model('models/LogisticRegression_classifier.pkl')  
-random_forest_classifier = load_model('models/RandomForest_classifier.pkl')  
+# Vérifier que les modèles existent
+if os.path.exists(CLASSIFIER_MODEL):
+    classifier = joblib.load(CLASSIFIER_MODEL)
+if os.path.exists(REGRESSOR_TEAM1_MODEL):
+    regressor_team1 = joblib.load(REGRESSOR_TEAM1_MODEL)
+if os.path.exists(REGRESSOR_TEAM2_MODEL):
+    regressor_team2 = joblib.load(REGRESSOR_TEAM2_MODEL)
 
-@app.route('/predict', methods=['POST'])  
-def predict():  
-    try:  
-        # Récupérer les données de la requête  
-        data = request.json  
-        # Convertir les données en DataFrame  
-        df = pd.DataFrame(data)  
+# Interface utilisateur
+st.title("🔮 Prédiction de Match de Football")
 
-        # Traitement des données  
-        processed_data = process_data('data/matchs.csv')  # Appeler la fonction de traitement  
+# Sélection des équipes
+col1, col2 = st.columns(2)
+with col1:
+    equipe1 = st.selectbox("Sélectionnez l'équipe 1", EQUIPES, key="equipe1")
+with col2:
+    equipe2 = st.selectbox("Sélectionnez l'équipe 2", [e for e in EQUIPES if e != equipe1], key="equipe2")
 
-        # Faire des prédictions avec le modèle choisi  
-        predictions = logistic_model.predict(processed_data)  # Exemple avec le modèle de régression logistique  
+# Entrée manuelle des statistiques en cas de panne de l'API
+st.subheader("📊 Entrez les statistiques manuellement (optionnel)")
+classement_1 = st.number_input("Classement de l'équipe 1", min_value=1, max_value=20, step=1)
+classement_2 = st.number_input("Classement de l'équipe 2", min_value=1, max_value=20, step=1)
+points_1 = st.number_input("Points équipe 1", min_value=0, max_value=100, step=1)
+points_2 = st.number_input("Points équipe 2", min_value=0, max_value=100, step=1)
 
-        # Afficher les résultats sous forme de graphique  
-        fig, ax = plt.subplots()  
-        ax.bar(range(len(predictions)), predictions)  
-        ax.set_title('Prédictions')  
-        ax.set_xlabel('Index')  
-        ax.set_ylabel('Valeur Prédite')  
-
-        # Convertir le graphique en image  
-        img = io.BytesIO()  
-        plt.savefig(img, format='png')  
-        img.seek(0)  
-        img_base64 = base64.b64encode(img.getvalue()).decode('utf8')  
-
-        return jsonify({  
-            'predictions': predictions.tolist(),  
-            'graph': img_base64  
-        })  
-
-    except Exception as e:  
-        return jsonify({'error': str(e)}), 400  
-
-if __name__ == '__main__':  
-    app.run(debug=True)  
+# Bouton de prédiction
+if st.button("Lancer la prédiction"):
+    # Création d'un dataframe pour l'entrée du modèle
+    X_input = pd.DataFrame({
+        "classement_1": [classement_1],
+        "classement_2": [classement_2],
+        "points_1": [points_1],
+        "points_2": [points_2],
+    })
+    
+    # Prédiction du résultat
+    prediction_resultat = classifier.predict(X_input)[0]
+    prediction_buts_1 = regressor_team1.predict(X_input)[0]
+    prediction_buts_2 = regressor_team2.predict(X_input)[0]
+    
+    # Affichage des résultats
+    st.subheader("📢 Résultat de la prédiction")
+    st.write(f"🏆 **Résultat du match** : {'Victoire Équipe 1' if prediction_resultat == 1 else 'Victoire Équipe 2' if prediction_resultat == -1 else 'Match Nul'}")
+    st.write(f"⚽ **Score prédit** : {round(prediction_buts_1)} - {round(prediction_buts_2)}")
