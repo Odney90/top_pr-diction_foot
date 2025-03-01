@@ -1,29 +1,24 @@
 import pandas as pd  
 
-def process_data(file_path):  
-    # Charger les données depuis le fichier CSV  
-    data = pd.read_csv(file_path)  
+def preprocess_data(file_path):  
+    # Charger les données  
+    df = pd.read_csv(file_path)  
 
-    # Afficher les premières lignes des données pour vérification  
-    print("Données brutes :")  
-    print(data.head())  
+    # Vérifier la présence de toutes les variables  
+    print("Vérification des colonnes manquantes...")  
+    missing_columns = df.columns[df.isnull().any()].tolist()  
+    if missing_columns:  
+        print("Colonnes manquantes :", missing_columns)  
+        # Remplir les valeurs manquantes (exemple : avec la moyenne)  
+        for column in missing_columns:  
+            df[column].fillna(df[column].mean(), inplace=True)  
 
-    # Effectuer le prétraitement des données  
-    # Suppression des colonnes inutiles (ajustez les noms selon vos données)  
-    columns_to_drop = ['colonne_inutile1', 'colonne_inutile2']  # Remplacez par les colonnes réelles si nécessaire  
-    data = data.drop(columns=columns_to_drop, errors='ignore')  
+    # Normaliser les données (exemple : Min-Max Scaling)  
+    df = (df - df.min()) / (df.max() - df.min())  
 
-    # Normalisation ou encodage si nécessaire  
-    # Exemple de normalisation pour une colonne spécifique  
-    # data['colonne'] = (data['colonne'] - data['colonne'].mean()) / data['colonne'].std()  
+    # Sauvegarder les données prétraitées  
+    df.to_csv('data/preprocessed_matchs.csv', index=False)  
+    print("Données prétraitées sauvegardées dans data/preprocessed_matchs.csv")  
 
-    # Afficher les données traitées pour vérification  
-    print("Données traitées :")  
-    print(data.head())  
-
-    return data  
-
-# Exemple d'utilisation  
 if __name__ == "__main__":  
-    # Chemin vers votre fichier CSV  
-    processed_data = process_data('data/matchs.csv')  
+    preprocess_data('data/matchs.csv')  
