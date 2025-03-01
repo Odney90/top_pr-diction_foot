@@ -8,7 +8,9 @@ load_dotenv()
 
 
 # Récupérer la clé API  
-api_key = os.getenv('API_KEY')
+from dotenv import dotenv_values
+config = dotenv_values(".env")  # Charge le fichier .env
+api_key = config.get("API_KEY")  # Récupère la clé API
 
 
 
