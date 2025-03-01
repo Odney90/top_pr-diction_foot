@@ -9,7 +9,7 @@ load_dotenv()
 
 # Récupérer la clé API  
 api_key = os.getenv('API_KEY')
-!grep "🔑 Clé API récupérée" foot_prediction/scripts/fetch_data.py
+
 
 
 
