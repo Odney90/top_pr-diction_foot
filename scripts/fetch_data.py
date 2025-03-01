@@ -1,137 +1,96 @@
-import os  
-import requests  
-import pandas as pd  
-from dotenv import load_dotenv  
+import requests
+import pandas as pd
+import os
 
-# Charger les variables d'environnement à partir du fichier .env  
-load_dotenv()  
+# Définition des paramètres de l'API
+API_URL = "https://api.soccersapi.com/v2.2/leagues/?user=lundiodney&token=623654d91c81ceed9379be5968f089d8&t=list"
 
+# Chemin du fichier de stockage
+DATA_DIR = "../data"
+DATA_PATH = os.path.join(DATA_DIR, "matchs.csv")  # Chemin absolu
 
-# Récupérer la clé API  
-from dotenv import dotenv_values
-config = dotenv_values(".env")  # Charge le fichier .env
-api_key = config.get("API_KEY")  # Récupère la clé API
+def fetch_data():
+    try:
+        response = requests.get(API_URL)
+        response.raise_for_status()
+        data = response.json()
 
+        if "data" not in data or not isinstance(data["data"], list):
+            print("❌ Erreur: La réponse de l'API ne contient pas de données valides.")
+            return
 
+        matches = []
+        for league in data['data']:
+            match_info = {
+                "league_id": league.get("id", "N/A"),
+                "league_name": league.get("name", "N/A"),
+                "country": league.get("country_name", "N/A"),
+                "season": league.get("current_season_id", "N/A"),
+            }
+            matches.append(match_info)
 
+        # Vérification après la boucle
+        print("🔹 Contenu final de matches :", matches)
+        print(f"🔹 Nombre total d'éléments dans matches : {len(matches)}")
+        
+        if not matches:
+            print("❌ Aucune donnée récupérée !")
+            return
 
+        # Création du DataFrame
+        df = pd.DataFrame(matches)
+        print("🔹 Aperçu du DataFrame avant enregistrement :")
+        print(df)
+        print(f"Nombre de lignes dans df : {len(df)}")
 
-# Vérifier si la clé API a été chargée correctement  
-if api_key is None:  
-    raise ValueError("La clé API n'a pas été trouvée. Assurez-vous que le fichier .env est correctement configuré.")  
+        # Vérifier et créer le dossier data
+        os.makedirs(DATA_DIR, exist_ok=True)
+        
+        # Forcer l'écriture et éviter les problèmes de cache
+        with open(DATA_PATH, "w", encoding="utf-8") as f:
+            df.to_csv(f, index=False)
+            f.flush()
+            os.fsync(f.fileno())
+        
+        print(f"✅ Données enregistrées dans {DATA_PATH}")
 
-# URL de l'API pour récupérer les données  
-matches_api_url = "https://v3.football.api-sports.io/fixtures"  
-leagues_api_url = "https://v3.football.api-sports.io/leagues"  
+        # Vérification immédiate après écriture
+        if os.path.exists(DATA_PATH):
+            print(f"✅ Le fichier {DATA_PATH} a bien été créé.")
+            with open(DATA_PATH, "r") as f:
+                content = f.read()
+                print("🔹 Contenu de matchs.csv après écriture :")
+                print(content)
+        else:
+            print(f"❌ Erreur : {DATA_PATH} n'a pas été créé !")
+    
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Erreur lors de la récupération des données : {e}")
 
-# Définir les en-têtes pour la requête  
-headers = {  
-    'x-apisports-key': api_key  
-}  
+def handle_manual_entry():
+    print("📝 Saisie manuelle des données...")
+    matches = []
+    while True:
+        league_id = input("ID de la ligue : ")
+        league_name = input("Nom de la ligue : ")
+        country = input("Pays : ")
+        season = input("Saison : ")
 
-def fetch_matches():  
-    response = requests.get(matches_api_url, headers=headers)  
-    print(f"Statut de la réponse pour les matchs : {response.status_code}")  # Afficher le code de statut  
-    if response.status_code == 200:  
-        data = response.json()  
-        print("Données des matchs :", data)  # Afficher les données des matchs  
-        if 'errors' in data and data['errors']:  
-            print(f"Erreur dans la réponse de l'API : {data['errors']}")  
-            return  
-        matchs_data = []  
+        matches.append({
+            "league_id": league_id,
+            "league_name": league_name,
+            "country": country,
+            "season": season,
+        })
+        
+        cont = input("Ajouter une autre ligue ? (o/n) : ")
+        if cont.lower() != 'o':
+            break
+    
+    df = pd.DataFrame(matches)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    df.to_csv(DATA_PATH, index=False, mode='a', header=not os.path.exists(DATA_PATH))
+    print("✅ Données ajoutées manuellement et enregistrées !")
 
-        # Parcourir les matchs récupérés  
-        for match in data['response']:  
-            match_info = {  
-                'Classement_1': match['league']['rank'],  
-                'Classement_2': match['league']['rank'],  
-                'Points_1': match['teams']['home']['points'],  
-                'Points_2': match['teams']['away']['points'],  
-                'Victoires_1': match['teams']['home']['wins'],  
-                'Victoires_2': match['teams']['away']['wins'],  
-                'Défaites_1': match['teams']['home']['losses'],  
-                'Défaites_2': match['teams']['away']['losses'],  
-                'Nuls_1': match['teams']['home']['draws'],  
-                'Nuls_2': match['teams']['away']['draws'],  
-                'ButsMarques_1': match['goals']['home'],  
-                'ButsMarques_2': match['goals']['away'],  
-                'ButsEncaisses_1': match['goals']['away'],  
-                'ButsEncaisses_2': match['goals']['home'],  
-                'DiffButs_1': match['goals']['home'] - match['goals']['away'],  
-                'DiffButs_2': match['goals']['away'] - match['goals']['home'],  
-                'Domicile_1': 1,  
-                'Domicile_2': 0,  
-                'JoursDepuisDernierMatch_1': (pd.to_datetime(match['fixture']['date']) - pd.to_datetime(match['teams']['home']['lastMatchDate'])).days if 'lastMatchDate' in match['teams']['home'] else 0,  
-                'JoursDepuisDernierMatch_2': (pd.to_datetime(match['fixture']['date']) - pd.to_datetime(match['teams']['away']['lastMatchDate'])).days if 'lastMatchDate' in match['teams']['away'] else 0,  
-                'ImportanceMatch_1': 0,  
-                'ImportanceMatch_2': 0,  
-                'H2H_1': 0,  
-                'H2H_2': 0,  
-                'ButsDomicile_1': match['teams']['home']['goals']['home'],  
-                'ButsDomicile_2': match['teams']['away']['goals']['home'],  
-                'ButsExterieur_1': match['teams']['home']['goals']['away'],  
-                'ButsExterieur_2': match['teams']['away']['goals']['away'],  
-                'Possession_1': match['teams']['home']['possession'],  
-                'Possession_2': match['teams']['away']['possession'],  
-                'Tirs_1': match['teams']['home']['shots'],  
-                'Tirs_2': match['teams']['away']['shots'],  
-                'TirsCadrés_1': match['teams']['home']['shotsOn'],  
-                'TirsCadrés_2': match['teams']['away']['shotsOn'],  
-                'xG_1': match['teams']['home']['xG'],  
-                'xG_2': match['teams']['away']['xG'],  
-                'xGA_1': match['teams']['home']['xGA'],  
-                'xGA_2': match['teams']['away']['xGA'],  
-                'DuelsGagnes_1': match['teams']['home']['duelsWon'],  
-                'DuelsGagnes_2': match['teams']['away']['duelsWon'],  
-                'Interceptions_1': match['teams']['home']['interceptions'],  
-                'Interceptions_2': match['teams']['away']['interceptions'],  
-                'CartonsJaunes_1': match['teams']['home']['yellowCards'],  
-                'CartonsJaunes_2': match['teams']['away']['yellowCards'],  
-                'Fautes_1': match['teams']['home']['fouls'],  
-                'Fautes_2': match['teams']['away']['fouls'],  
-                'Blessures_1': match['teams']['home']['injuries'],  
-                'Blessures_2': match['teams']['away']['injuries'],  
-                'MeilleursButeurs_1': match['teams']['home']['topScorers'],  
-                'MeilleursButeurs_2': match['teams']['away']['topScorers'],  
-            }  
-            matchs_data.append(match_info)  
-
-        # Convertir en DataFrame et sauvegarder  
-        matchs_df = pd.DataFrame(matchs_data)  
-        matchs_df.to_csv('data/matchs.csv', index=False)  
-        print("Données récupérées et sauvegardées dans matchs.csv")  
-    else:  
-        print(f"Erreur lors de la récupération des données des matchs : {response.status_code}")  
-
-def fetch_leagues():  
-    response = requests.get(leagues_api_url, headers=headers)  
-    print(f"Statut de la réponse pour les ligues : {response.status_code}")  # Afficher le code de statut  
-    if response.status_code == 200:  
-        data = response.json()  
-        print("Données des ligues :", data)  # Afficher les données des ligues  
-        if 'errors' in data and data['errors']:  
-            print(f"Erreur dans la réponse de l'API : {data['errors']}")  
-            return  
-        leagues_data = []  
-
-        # Parcourir les ligues récupérées  
-        for league in data['response']:  
-            league_info = {  
-                'id': league['league']['id'],  
-                'name': league['league']['name'],  
-                'country': league['country'],  
-                'season': league['seasons'][0]['year'],  
-                'logo': league['league']['logo']  
-            }  
-            leagues_data.append(league_info)  
-
-        # Convertir en DataFrame et sauvegarder  
-        leagues_df = pd.DataFrame(leagues_data)  
-        leagues_df.to_csv('data/leagues.csv', index=False)  
-        print("Données des ligues récupérées et sauvegardées dans leagues.csv")  
-    else:  
-        print(f"Erreur lors de la récupération des ligues : {response.status_code}")  
-
-# Exécuter les fonctions  
-fetch_matches()  # Récupérer les données des matchs  
-fetch_leagues()  # Récupérer les données des ligues  
+if __name__ == "__main__":
+    fetch_data()
