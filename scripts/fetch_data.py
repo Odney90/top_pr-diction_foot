@@ -8,15 +8,17 @@ load_dotenv()
 api_key = os.getenv('API_KEY')  
 
 # URL de l'API pour récupérer les données  
-api_url = "https://v3.football.api-sports.io/fixtures"  
+matches_api_url = "https://v3.football.api-sports.io/fixtures"  
+leagues_api_url = "https://v3.football.api-sports.io/leagues"  
 
 # Définir les en-têtes pour la requête  
 headers = {  
     'x-apisports-key': api_key  
 }  
 
-def fetch_data():  
-    response = requests.get(api_url, headers=headers)  
+def fetch_matches():  # Renommé pour correspondre au contexte  
+    response = requests.get(matches_api_url, headers=headers)  
+    print(f"Statut de la réponse pour les matchs : {response.status_code}")  # Afficher le code de statut  
     if response.status_code == 200:  
         data = response.json()  
         matchs_data = []  
@@ -49,8 +51,8 @@ def fetch_data():
                 # 4. Contexte du Match  
                 'Domicile_1': 1,  # Équipe 1 joue à domicile  
                 'Domicile_2': 0,  # Équipe 2 joue à l'extérieur  
-                'JoursDepuisDernierMatch_1': (pd.to_datetime(match['fixture']['date']) - pd.to_datetime(match['teams']['home']['lastMatchDate'])).days,  # Jours depuis le dernier match équipe 1  
-                'JoursDepuisDernierMatch_2': (pd.to_datetime(match['fixture']['date']) - pd.to_datetime(match['teams']['away']['lastMatchDate'])).days,  # Jours depuis le dernier match équipe 2  
+                'JoursDepuisDernierMatch_1': (pd.to_datetime(match['fixture']['date']) - pd.to_datetime(match['teams']['home']['lastMatchDate'])).days if 'lastMatchDate' in match['teams']['home'] else 0,  # Jours depuis le dernier match équipe 1  
+                'JoursDepuisDernierMatch_2': (pd.to_datetime(match['fixture']['date']) - pd.to_datetime(match['teams']['away']['lastMatchDate'])).days if 'lastMatchDate' in match['teams']['away'] else 0,  # Jours depuis le dernier match équipe 2  
                 'ImportanceMatch_1': 0,  # Importance du match pour l'équipe 1 (à définir)  
                 'ImportanceMatch_2': 0,  # Importance du match pour l'équipe 2 (à définir)  
 
@@ -103,7 +105,33 @@ def fetch_data():
         matchs_df.to_csv('data/matchs.csv', index=False)  
         print("Données récupérées et sauvegardées dans matchs.csv")  
     else:  
-        print(f"Erreur lors de la récupération des données : {response.status_code}")  
+        print(f"Erreur lors de la récupération des données des matchs : {response.status_code}")  
+
+def fetch_leagues():  
+    response = requests.get(leagues_api_url, headers=headers)  
+    print(f"Statut de la réponse pour les ligues : {response.status_code}")  # Afficher le code de statut  
+    if response.status_code == 200:  
+        data = response.json()  
+        leagues_data = []  
+
+        # Parcourir les ligues récupérées  
+        for league in data['response']:  
+            league_info = {  
+                'id': league['league']['id'],  
+                'name': league['league']['name'],  
+                'country': league['country'],  
+                'season': league['seasons'][0]['year'],  # Assurez-vous que cette clé existe  
+                'logo': league['league']['logo']  
+            }  
+            leagues_data.append(league_info)  
+
+        # Convertir en DataFrame et sauvegarder  
+        leagues_df = pd.DataFrame(leagues_data)  
+        leagues_df.to_csv('data/leagues.csv', index=False)  
+        print("Données des ligues récupérées et sauvegardées dans leagues.csv")  
+    else:  
+        print(f"Erreur lors de la récupération des ligues : {response.status_code}")  
 
 if __name__ == "__main__":  
-    fetch_data()  
+    fetch_matches()  # Récupérer les données des matchs  
+    fetch_leagues()   # Récupérer les données des ligues  
