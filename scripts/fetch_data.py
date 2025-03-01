@@ -7,7 +7,9 @@ from dotenv import load_dotenv
 load_dotenv()  
 
 # Récupérer la clé API  
-api_key = os.getenv('API_KEY')  
+api_key = os.getenv('API_KEY')
+print(f"🔑 Clé API récupérée : {api_key}")
+
 
 # Vérifier si la clé API a été chargée correctement  
 if api_key is None:  
