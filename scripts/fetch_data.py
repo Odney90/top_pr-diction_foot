@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import os
+import time
 
 # Définition des paramètres de l'API
 API_TOKEN = "623654d91c81ceed9379be5968f089d8"
@@ -8,20 +9,35 @@ API_USER = "lundiodney"
 API_BASE_URL = "https://api.soccersapi.com/v2.2"
 
 # Chemins des fichiers de stockage
-DATA_DIR = "../data"
+DATA_DIR = "/content/prediction-football/data"
 LIGUES_PATH = os.path.join(DATA_DIR, "ligues.csv")
 MATCHS_PATH = os.path.join(DATA_DIR, "matchs.csv")
+
+# Nombre de tentatives et délai en cas d'échec
+MAX_RETRIES = 5
+RETRY_DELAY = 10  # secondes
 
 def fetch_data(endpoint, params):
     url = f"{API_BASE_URL}/{endpoint}/"
     params.update({"user": API_USER, "token": API_TOKEN})
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Erreur lors de la récupération des données depuis {endpoint} : {e}")
-        return None
+    attempts = 0
+    while attempts < MAX_RETRIES:
+        try:
+            response = requests.get(url, params=params, timeout=15)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            if response.status_code == 504:
+                attempts += 1
+                print(f"⚠️ Erreur 504, tentative {attempts}/{MAX_RETRIES}... Attente {RETRY_DELAY} secondes")
+                time.sleep(RETRY_DELAY)
+            else:
+                print(f"❌ Erreur HTTP {response.status_code}: {e}")
+                break
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Erreur lors de la récupération des données depuis {endpoint} : {e}")
+            break
+    return None
 
 def fetch_ligues():
     data = fetch_data("leagues", {"t": "list"})
@@ -46,7 +62,7 @@ def fetch_ligues():
 def fetch_matchs():
     data = fetch_data("matches", {"t": "schedule"})
     if not data or "data" not in data:
-        print("❌ Aucune donnée de matchs récupérée.")
+        print("❌ Aucune donnée de matchs récupérée après plusieurs tentatives.")
         return
 
     matchs = []
