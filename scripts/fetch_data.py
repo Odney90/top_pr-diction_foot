@@ -6,11 +6,11 @@ from dotenv import load_dotenv
 # Charger les variables d'environnement à partir du fichier .env  
 load_dotenv()  
 
+
 # Récupérer la clé API  
 api_key = os.getenv('API_KEY')
-print("📌 Test de récupération de la clé API")
-print(f"🔑 Clé API récupérée depuis .env : {api_key}")
-print(f"🔑 Clé API dans les headers : {headers}")
+!grep "🔑 Clé API récupérée" foot_prediction/scripts/fetch_data.py
+
 
 
 
