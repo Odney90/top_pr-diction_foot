@@ -1,15 +1,17 @@
+import os  
 import requests  
 import pandas as pd  
-import os  
 from dotenv import load_dotenv  
 
-# Charger les variables d'environnement  
-# Remplacez ceci par votre clé API directement si vous ne souhaitez pas utiliser .env  
-api_key = 'YOUR_API_KEY'  # Remplacez par votre clé API  
+# Charger les variables d'environnement à partir du fichier .env  
+load_dotenv()  
 
-# Créer le répertoire 'data' s'il n'existe pas  
-if not os.path.exists('data'):  
-    os.makedirs('data')  
+# Récupérer la clé API  
+api_key = os.getenv('API_KEY')  
+
+# Vérifier si la clé API a été chargée correctement  
+if api_key is None:  
+    raise ValueError("La clé API n'a pas été trouvée. Assurez-vous que le fichier .env est correctement configuré.")  
 
 # URL de l'API pour récupérer les données  
 matches_api_url = "https://v3.football.api-sports.io/fixtures"  
