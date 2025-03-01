@@ -9,12 +9,12 @@ def process_data(file_path):
     print(data.head())  
 
     # Effectuer le prétraitement des données  
-    # Exemple : Suppression des colonnes inutiles  
-    # Remplacez 'colonne_inutile1' et 'colonne_inutile2' par les noms réels des colonnes à supprimer  
-    data = data.drop(columns=['colonne_inutile1', 'colonne_inutile2'], errors='ignore')  
+    # Suppression des colonnes inutiles (ajustez les noms selon vos données)  
+    columns_to_drop = ['colonne_inutile1', 'colonne_inutile2']  # Remplacez par les colonnes réelles si nécessaire  
+    data = data.drop(columns=columns_to_drop, errors='ignore')  
 
     # Normalisation ou encodage si nécessaire  
-    # Exemple de normalisation  
+    # Exemple de normalisation pour une colonne spécifique  
     # data['colonne'] = (data['colonne'] - data['colonne'].mean()) / data['colonne'].std()  
 
     # Afficher les données traitées pour vérification  
@@ -25,5 +25,5 @@ def process_data(file_path):
 
 # Exemple d'utilisation  
 if __name__ == "__main__":  
-    # Remplacez 'data/matchs.csv' par le chemin vers votre fichier CSV  
+    # Chemin vers votre fichier CSV  
     processed_data = process_data('data/matchs.csv')  
