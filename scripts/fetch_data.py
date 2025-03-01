@@ -18,7 +18,7 @@ def fetch_data():
         df = pd.DataFrame(leagues)  
         
         # Enregistrer le DataFrame dans un fichier CSV  
-        df.to_csv('data/matchs.csv', index=False)  
+        df.to_csv('../data/matchs.csv', index=False)  # Utilisez le chemin relatif correct  
         print("Données récupérées et enregistrées dans matchs.csv")  
     else:  
         print(f"Erreur lors de la récupération des données : {response.status_code}")  
