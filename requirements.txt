@@ -6,5 +6,5 @@ numpy
 streamlit
 pandas
 scipy
-matplolib
+matplotlib
 requests 
