@@ -8,7 +8,10 @@ load_dotenv()
 
 # Récupérer la clé API  
 api_key = os.getenv('API_KEY')
-print(f"🔑 Clé API récupérée : {api_key}")
+print("📌 Test de récupération de la clé API")
+print(f"🔑 Clé API récupérée depuis .env : {api_key}")
+print(f"🔑 Clé API dans les headers : {headers}")
+
 
 
 # Vérifier si la clé API a été chargée correctement  
