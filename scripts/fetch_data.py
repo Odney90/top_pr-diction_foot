@@ -2,8 +2,8 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-# Clé API pour l'API-Football v2
-API_KEY = "9160099ab1eceff675391658f3d5b17e"
+# Nouvelle clé API pour l'API-Football v2
+API_KEY = "BA0C8BD117B1DA04666F51DF03AFF8E1"
 headers = {
     "X-Api-Key": API_KEY
 }
@@ -57,7 +57,7 @@ for league_name, league_id in leagues.items():
         if not standings:
             print(f"Aucun 'standings' trouvé pour {league_name}.")
         else:
-            # Pour simplifier, on associe les équipes par paires
+            # Association simplifiée des équipes par paires
             for i in range(0, len(standings) - 1, 2):
                 team1 = standings[i]
                 team2 = standings[i+1]
@@ -74,7 +74,7 @@ for league_name, league_id in leagues.items():
                     "ButsMarques_1": team1.get("all", {}).get("goals", {}).get("for"),
                     "ButsEncaisses_1": team1.get("all", {}).get("goals", {}).get("against"),
                     "DiffButs_1": team1.get("all", {}).get("goalsDiff"),
-                    "Domicile_1": 1,  # On suppose que l'équipe 1 joue à domicile
+                    "Domicile_1": 1,  # Supposons que l'équipe 1 joue à domicile
                     "JoursDepuisDernierMatch_1": calculate_days_since("2023-05-01"),
                     "ImportanceMatch_1": 0,
                     "H2H_1": None,
@@ -103,7 +103,7 @@ for league_name, league_id in leagues.items():
                     "ButsMarques_2": team2.get("all", {}).get("goals", {}).get("for"),
                     "ButsEncaisses_2": team2.get("all", {}).get("goals", {}).get("against"),
                     "DiffButs_2": team2.get("all", {}).get("goalsDiff"),
-                    "Domicile_2": 0,  # On suppose que l'équipe 2 joue à l'extérieur
+                    "Domicile_2": 0,  # Supposons que l'équipe 2 joue à l'extérieur
                     "JoursDepuisDernierMatch_2": calculate_days_since("2023-05-01"),
                     "ImportanceMatch_2": 0,
                     "H2H_2": None,
