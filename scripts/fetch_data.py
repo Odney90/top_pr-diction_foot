@@ -1,86 +1,134 @@
 import requests
 import pandas as pd
-import os
-import time
+from datetime import datetime
 
-# Définition des paramètres de l'API
-API_TOKEN = "623654d91c81ceed9379be5968f089d8"
-API_USER = "lundiodney"
-API_BASE_URL = "https://api.soccersapi.com/v2.2"
+# --- Paramètres et configuration ---
+API_KEY = "9160099ab1eceff675391658f3d5b17e"
+headers = {
+    "X-Api-Key": API_KEY
+}
 
-# Chemins des fichiers de stockage
-DATA_DIR = "/content/prediction-football/data"
-LIGUES_PATH = os.path.join(DATA_DIR, "ligues.csv")
-MATCHS_PATH = os.path.join(DATA_DIR, "matchs.csv")
+# Dictionnaire des championnats à récupérer (les IDs sont à vérifier dans la doc officielle)
+leagues = {
+    "Premier League": 39,
+    "La Liga": 140,
+    "Serie A": 135,
+    "Bundesliga": 78,
+    "Ligue 1": 61,
+    "Turkish Super Lig": 65,
+    "Danish Superliga": 77,
+    "Premier League 2nd Division": 50,  # Exemple, à adapter
+    "La Liga 2": 141,
+    "Serie B": 136,
+    "Bundesliga 2": 79,
+    "Ligue 2": 62,
+    "Champions League": 2,
+    "Europa League": 3,
+    "Conference League": 4
+}
 
-# Nombre de tentatives et délai en cas d'échec
-MAX_RETRIES = 5
-RETRY_DELAY = 10  # secondes
+season = 2023  # Saison cible
 
-def fetch_data(endpoint, params):
-    url = f"{API_BASE_URL}/{endpoint}/"
-    params.update({"user": API_USER, "token": API_TOKEN})
-    attempts = 0
-    while attempts < MAX_RETRIES:
-        try:
-            response = requests.get(url, params=params, timeout=15)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.HTTPError as e:
-            if response.status_code == 504:
-                attempts += 1
-                print(f"⚠️ Erreur 504, tentative {attempts}/{MAX_RETRIES}... Attente {RETRY_DELAY} secondes")
-                time.sleep(RETRY_DELAY)
-            else:
-                print(f"❌ Erreur HTTP {response.status_code}: {e}")
-                break
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Erreur lors de la récupération des données depuis {endpoint} : {e}")
-            break
-    return None
+# Liste qui contiendra tous les enregistrements (un enregistrement = un match avec 52 variables)
+all_matches = []
 
-def fetch_ligues():
-    data = fetch_data("leagues", {"t": "list"})
-    if not data or "data" not in data:
-        print("❌ Aucune donnée de ligues récupérée.")
-        return
+# Fonction auxiliaire pour calculer le nombre de jours depuis un match (date au format "YYYY-MM-DD")
+def calculate_days_since(last_match_date_str):
+    try:
+        last_match_date = datetime.strptime(last_match_date_str, "%Y-%m-%d")
+        delta = datetime.now() - last_match_date
+        return delta.days
+    except Exception:
+        return None
 
-    ligues = []
-    for league in data["data"]:
-        ligues.append({
-            "league_id": league.get("id", "N/A"),
-            "league_name": league.get("name", "N/A"),
-            "country": league.get("country_name", "N/A"),
-            "season": league.get("current_season_id", "N/A"),
-        })
+# --- Récupération des données pour chaque ligue ---
+for league_name, league_id in leagues.items():
+    url = f"https://v2.api-football.com/leagueTable/{league_id}/{season}"
+    response = requests.get(url, headers=headers)
     
-    df = pd.DataFrame(ligues)
-    os.makedirs(DATA_DIR, exist_ok=True)
-    df.to_csv(LIGUES_PATH, index=False)
-    print(f"✅ Données des ligues enregistrées dans {LIGUES_PATH}")
+    if response.status_code == 200:
+        data = response.json()
+        standings = data.get("api", {}).get("standings", [])
+        
+        # Pour simuler des données de match, on associe les équipes par paires (cette méthode est simplifiée)
+        for i in range(0, len(standings) - 1, 2):
+            team1 = standings[i]
+            team2 = standings[i+1]
+            
+            # Extraction des 26 variables pour l'équipe 1 (variables générales, avancées et disciplinaires)
+            match_record = {
+                "Competition": league_name,
+                # --- Équipe 1 ---
+                "Classement_1": team1.get("rank"),
+                "Points_1": team1.get("points"),
+                "Victoires_1": team1.get("all", {}).get("win"),
+                "Défaites_1": team1.get("all", {}).get("lose"),
+                "Nuls_1": team1.get("all", {}).get("draw"),
+                "ButsMarques_1": team1.get("all", {}).get("goals", {}).get("for"),
+                "ButsEncaisses_1": team1.get("all", {}).get("goals", {}).get("against"),
+                "DiffButs_1": team1.get("all", {}).get("goalsDiff"),
+                # Pour le contexte du match, on suppose que l'équipe 1 joue à domicile
+                "Domicile_1": 1,
+                # Pour le calcul du nombre de jours depuis le dernier match, on utilise ici une date fictive
+                "JoursDepuisDernierMatch_1": calculate_days_since("2023-05-01"),
+                # Importance du match : par défaut 0 (normal) – saisie manuelle possible via l'interface
+                "ImportanceMatch_1": 0,
+                # Historique des confrontations (H2H) – placeholder, à compléter via un endpoint fixtures
+                "H2H_1": None,
+                # --- Variables avancées pour l'équipe 1 (placeholder si non disponibles) ---
+                "ButsDomicile_1": team1.get("home", {}).get("goals", {}).get("for") if team1.get("home") else None,
+                "ButsExterieur_1": team1.get("away", {}).get("goals", {}).get("for") if team1.get("away") else None,
+                "Possession_1": None,
+                "Tirs_1": None,
+                "TirsCadrés_1": None,
+                "TirsSubis_1": None,
+                "xG_1": None,
+                "xGA_1": None,
+                "DuelsGagnes_1": None,
+                "Interceptions_1": None,
+                # --- Variables disciplinaires pour l'équipe 1 ---
+                "CartonsJaunes_1": None,
+                "Fautes_1": None,
+                "Blessures_1": None,
+                "MeilleursButeurs_1": None,
+                
+                # --- Équipe 2 ---
+                "Classement_2": team2.get("rank"),
+                "Points_2": team2.get("points"),
+                "Victoires_2": team2.get("all", {}).get("win"),
+                "Défaites_2": team2.get("all", {}).get("lose"),
+                "Nuls_2": team2.get("all", {}).get("draw"),
+                "ButsMarques_2": team2.get("all", {}).get("goals", {}).get("for"),
+                "ButsEncaisses_2": team2.get("all", {}).get("goals", {}).get("against"),
+                "DiffButs_2": team2.get("all", {}).get("goalsDiff"),
+                # Pour l'équipe 2, on suppose qu'elle joue à l'extérieur
+                "Domicile_2": 0,
+                "JoursDepuisDernierMatch_2": calculate_days_since("2023-05-01"),
+                "ImportanceMatch_2": 0,
+                "H2H_2": None,
+                # --- Variables avancées pour l'équipe 2 ---
+                "ButsDomicile_2": team2.get("home", {}).get("goals", {}).get("for") if team2.get("home") else None,
+                "ButsExterieur_2": team2.get("away", {}).get("goals", {}).get("for") if team2.get("away") else None,
+                "Possession_2": None,
+                "Tirs_2": None,
+                "TirsCadrés_2": None,
+                "TirsSubis_2": None,
+                "xG_2": None,
+                "xGA_2": None,
+                "DuelsGagnes_2": None,
+                "Interceptions_2": None,
+                # --- Variables disciplinaires pour l'équipe 2 ---
+                "CartonsJaunes_2": None,
+                "Fautes_2": None,
+                "Blessures_2": None,
+                "MeilleursButeurs_2": None
+            }
+            all_matches.append(match_record)
+    else:
+        print(f"Erreur lors de l'appel pour {league_name}: {response.status_code}")
+        # Ici, vous pouvez ajouter un mécanisme de fallback pour permettre la saisie manuelle ou charger des données existantes
 
-def fetch_matchs():
-    data = fetch_data("matches", {"t": "schedule"})
-    if not data or "data" not in data:
-        print("❌ Aucune donnée de matchs récupérée après plusieurs tentatives.")
-        return
-
-    matchs = []
-    for match in data["data"]:
-        matchs.append({
-            "match_id": match.get("id", "N/A"),
-            "league_id": match.get("league_id", "N/A"),
-            "home_team": match.get("home", {}).get("name", "N/A"),
-            "away_team": match.get("away", {}).get("name", "N/A"),
-            "date": match.get("date", "N/A"),
-            "status": match.get("status", "N/A"),
-        })
-    
-    df = pd.DataFrame(matchs)
-    os.makedirs(DATA_DIR, exist_ok=True)
-    df.to_csv(MATCHS_PATH, index=False)
-    print(f"✅ Données des matchs enregistrées dans {MATCHS_PATH}")
-
-if __name__ == "__main__":
-    fetch_ligues()
-    fetch_matchs()
+# Sauvegarde du DataFrame dans data/matchs.csv
+df = pd.DataFrame(all_matches)
+df.to_csv("data/matchs.csv", index=False)
+print("Les données de tous les championnats ont été sauvegardées dans data/matchs.csv")
