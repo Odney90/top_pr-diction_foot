@@ -1,9 +1,12 @@
 name: Fetch Data
 
+permissions:
+  contents: write
+
 on:
   schedule:
-    - cron: '0 0 * * *'  # Exécute le workflow tous les jours à minuit (UTC)
-  workflow_dispatch:   # Permet de déclencher manuellement le workflow
+    - cron: '0 0 * * *'  # Exécute tous les jours à minuit (UTC)
+  workflow_dispatch:   # Permet le déclenchement manuel
 
 jobs:
   fetch-data:
