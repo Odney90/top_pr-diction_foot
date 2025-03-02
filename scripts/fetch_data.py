@@ -32,7 +32,6 @@ season = 2023  # Saison cible
 # Liste qui contiendra tous les enregistrements (un enregistrement = un match avec 52 variables)
 all_matches = []
 
-# Fonction auxiliaire pour calculer le nombre de jours depuis un match (date au format "YYYY-MM-DD")
 def calculate_days_since(last_match_date_str):
     try:
         last_match_date = datetime.strptime(last_match_date_str, "%Y-%m-%d")
@@ -55,10 +54,10 @@ for league_name, league_id in leagues.items():
             team1 = standings[i]
             team2 = standings[i+1]
             
-            # Extraction des 26 variables pour l'équipe 1 (variables générales, avancées et disciplinaires)
             match_record = {
                 "Competition": league_name,
                 # --- Équipe 1 ---
+                "Equipe_1": team1.get("name"),
                 "Classement_1": team1.get("rank"),
                 "Points_1": team1.get("points"),
                 "Victoires_1": team1.get("all", {}).get("win"),
@@ -67,15 +66,10 @@ for league_name, league_id in leagues.items():
                 "ButsMarques_1": team1.get("all", {}).get("goals", {}).get("for"),
                 "ButsEncaisses_1": team1.get("all", {}).get("goals", {}).get("against"),
                 "DiffButs_1": team1.get("all", {}).get("goalsDiff"),
-                # Pour le contexte du match, on suppose que l'équipe 1 joue à domicile
-                "Domicile_1": 1,
-                # Pour le calcul du nombre de jours depuis le dernier match, on utilise ici une date fictive
+                "Domicile_1": 1,  # Supposons que l'équipe 1 joue à domicile
                 "JoursDepuisDernierMatch_1": calculate_days_since("2023-05-01"),
-                # Importance du match : par défaut 0 (normal) – saisie manuelle possible via l'interface
                 "ImportanceMatch_1": 0,
-                # Historique des confrontations (H2H) – placeholder, à compléter via un endpoint fixtures
                 "H2H_1": None,
-                # --- Variables avancées pour l'équipe 1 (placeholder si non disponibles) ---
                 "ButsDomicile_1": team1.get("home", {}).get("goals", {}).get("for") if team1.get("home") else None,
                 "ButsExterieur_1": team1.get("away", {}).get("goals", {}).get("for") if team1.get("away") else None,
                 "Possession_1": None,
@@ -86,13 +80,13 @@ for league_name, league_id in leagues.items():
                 "xGA_1": None,
                 "DuelsGagnes_1": None,
                 "Interceptions_1": None,
-                # --- Variables disciplinaires pour l'équipe 1 ---
                 "CartonsJaunes_1": None,
                 "Fautes_1": None,
                 "Blessures_1": None,
                 "MeilleursButeurs_1": None,
                 
                 # --- Équipe 2 ---
+                "Equipe_2": team2.get("name"),
                 "Classement_2": team2.get("rank"),
                 "Points_2": team2.get("points"),
                 "Victoires_2": team2.get("all", {}).get("win"),
@@ -101,12 +95,10 @@ for league_name, league_id in leagues.items():
                 "ButsMarques_2": team2.get("all", {}).get("goals", {}).get("for"),
                 "ButsEncaisses_2": team2.get("all", {}).get("goals", {}).get("against"),
                 "DiffButs_2": team2.get("all", {}).get("goalsDiff"),
-                # Pour l'équipe 2, on suppose qu'elle joue à l'extérieur
-                "Domicile_2": 0,
+                "Domicile_2": 0,  # Supposons que l'équipe 2 joue à l'extérieur
                 "JoursDepuisDernierMatch_2": calculate_days_since("2023-05-01"),
                 "ImportanceMatch_2": 0,
                 "H2H_2": None,
-                # --- Variables avancées pour l'équipe 2 ---
                 "ButsDomicile_2": team2.get("home", {}).get("goals", {}).get("for") if team2.get("home") else None,
                 "ButsExterieur_2": team2.get("away", {}).get("goals", {}).get("for") if team2.get("away") else None,
                 "Possession_2": None,
@@ -117,7 +109,6 @@ for league_name, league_id in leagues.items():
                 "xGA_2": None,
                 "DuelsGagnes_2": None,
                 "Interceptions_2": None,
-                # --- Variables disciplinaires pour l'équipe 2 ---
                 "CartonsJaunes_2": None,
                 "Fautes_2": None,
                 "Blessures_2": None,
@@ -126,7 +117,6 @@ for league_name, league_id in leagues.items():
             all_matches.append(match_record)
     else:
         print(f"Erreur lors de l'appel pour {league_name}: {response.status_code}")
-        # Ici, vous pouvez ajouter un mécanisme de fallback pour permettre la saisie manuelle ou charger des données existantes
 
 # Sauvegarde du DataFrame dans data/matchs.csv
 df = pd.DataFrame(all_matches)
